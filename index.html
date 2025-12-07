@@ -183,7 +183,7 @@ async function loadPosts() {
             }
         }
 
-        status.textContent = `Done — ${goodPosts.length} posts loaded${hidden ? ` (${hidden} removed)` : ''}`;
+        status.textContent = `Done — ${goodPosts.length} Fuccessfully Posted${hidden ? ` (${hidden} Filtered Out)` : ''}`;
         stats.textContent = hidden ? `${hidden} removed hidden` : "All clean";
 
     } catch (e) {
@@ -260,4 +260,5 @@ document.getElementById('username').addEventListener('keypress', e => {
 });
 </script>
 </body>
+
 </html>
