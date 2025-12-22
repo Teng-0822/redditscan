@@ -53,11 +53,17 @@
 </head>
 <body>
 <div class="container">
-    <header><h1>Reddit Clean Viewer</h1></header>
+    <header>
+        <h1>Reddit Clean Viewer</h1>
+        <!--<button class="load" style="background:orange;" onclick="window.location.href='Reddit_Link_Update.html'">Link Checker</button>-->
+    </header>
+
     <div class="search">
         <input type="text" id="username" placeholder="Enter Reddit username (no u/)" autofocus>
         <button class="load" onclick="loadPosts()">Load Posts</button>
         <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
+        <button class="copyall" id="copyLinksBtn" onclick="copyAllLinks()">Copy All Links</button>
+
     </div>
     <div class="info">
         <span id="status">Enter username → see smart natural speed</span>
@@ -89,11 +95,10 @@ async function loadPosts() {
 
     try {
         do {
-            let url = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
-            if (after) url += `&after=${after}`;
-            const res = await fetch(url, { headers: { 'User-Agent': 'RedditClean/1.0' } });
-            if (!res.ok) throw new Error("User not found");
-            const json = await res.json();
+        let baseUrl = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
+        if (after) baseUrl += `&after=${after}`;
+        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(baseUrl)}`;
+        const res = await fetch(proxyUrl);
 
             for (const child of json.data.children) {
                 const p = child.data;
@@ -231,6 +236,7 @@ async function loadPosts() {
         // Show the Copy All button when done
         if (allNeededNumbers.length > 0) {
             copyAllBtn.style.display = 'inline-block';
+            document.getElementById('copyLinksBtn').style.display = 'inline-block';
         }
 
         status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
@@ -242,6 +248,7 @@ async function loadPosts() {
     }
 }
 
+//Copy Function
 function copyAllUpvotes() {
     if (allNeededNumbers.length === 0) return;
     const text = allNeededNumbers.join('\n');
@@ -257,10 +264,33 @@ function copyAllUpvotes() {
     });
 }
 
+function copyAllLinks() {
+    const links = [];
+
+    document.querySelectorAll('.post .title-link').forEach(a => {
+        if (a.href) links.push(a.href);
+    });
+
+    if (links.length === 0) return;
+
+    navigator.clipboard.writeText(links.join('\n')).then(() => {
+        const btn = document.getElementById('copyLinksBtn');
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.background = '#218838';
+        setTimeout(() => {
+            btn.textContent = old;
+            btn.style.background = '';
+        }, 2000);
+    });
+}
+//End of Copy function
+
 async function getSmartNeed(subreddit, userScore) {
     try {
-        const res = await fetch(`https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`, {
-            headers: { 'User-Agent': 'RedditClean/1.0' }
+        const baseUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`;
+        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(baseUrl)}`;
+        const res = await fetch(proxyUrl);
         });
         if (!res.ok) return { topHTML: "<em>Private</em>", needHTML: "Error" };
 
