@@ -95,12 +95,12 @@ async function loadPosts() {
     let filteredPosts = [];
     const cache = new Map();
 
-    // Updated proxy list for late 2025 (corsproxy.io first as it's stable)
+    // Current best order Dec 2025
     const proxies = [
-        'https://corsproxy.io/?',          // Most reliable currently
-        'https://api.cors.lol/?url=',      // Good open-source one
+        'https://corsproxy.io/?',          // Most reports still working well
+        'https://api.codetabs.com/v1/proxy?quest=', 
         'https://cors.x2u.in/',
-        'https://api.codetabs.com/v1/proxy?quest='
+        // 'https://api.cors.lol/?url='    // Often down/inactive 2025
     ];
 
     try {
@@ -109,44 +109,39 @@ async function loadPosts() {
             if (after) baseUrl += `&after=${after}`;
 
             let json = null;
-            for (const proxyPrefix of proxies) {
+            for (const proxy of proxies) {
                 try {
-                    const proxyUrl = proxyPrefix + encodeURIComponent(baseUrl);
-                    console.log('Trying proxy for user posts:', proxyPrefix); // For debugging
-                    const res = await fetch(proxyUrl, { timeout: 10000 }); // Add timeout if supported
+                    const proxyUrl = proxy + encodeURIComponent(baseUrl);
+                    const res = await fetch(proxyUrl);
                     if (!res.ok) continue;
 
                     const contentType = res.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        console.warn('Non-JSON response from proxy:', proxyPrefix);
-                        continue;
-                    }
+                    if (!contentType || !contentType.includes('application/json')) continue;
 
                     json = await res.json();
-                    console.log('Success with proxy:', proxyPrefix);
                     break;
-                } catch (e) {
-                    console.warn('Proxy failed:', proxyPrefix, e);
-                }
+                } catch (e) {}
             }
 
-            if (!json || !json.data || json.data.children.length === 0 && !after) {
-                throw new Error("No posts found or all proxies failed");
-            }
+            if (!json) throw new Error("No working proxy for user posts – try later");
 
-            // ... (your existing loop to process children into goodPosts/filteredPosts) ...
+            for (const child of json.data.children) {
+                // ... your existing post processing into goodPosts/filteredPosts ...
+            }
 
             after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 1500)); // Longer delay to avoid blocks
+            if (after) await new Promise(r => setTimeout(r, 1500));
         } while (after);
 
         if (goodPosts.length === 0) {
-            container.innerHTML = '<div class="post"><div class="main-line"><strong>No visible posts found for this user</strong></div></div>';
+            container.innerHTML = '<div class="post"><div class="main-line"><strong>No visible posts (or all filtered)</strong></div></div>';
             status.textContent = 'Done — 0 visible posts';
             return;
         }
 
-        // ... (rest of rendering goodPosts and filteredPosts unchanged) ...
+        // ... your existing rendering loop for goodPosts ...
+
+        // Filtered section ...
 
         if (allNeededNumbers.length > 0) {
             copyAllBtn.style.display = 'inline-block';
@@ -157,9 +152,8 @@ async function loadPosts() {
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
 
     } catch (e) {
-        status.textContent = "Error loading posts: " + (e.message || "Proxy/Reddit issue – try again");
-        container.innerHTML = '<div class="post"><div class="main-line"><strong>Failed to load posts. Check console for details.</strong></div></div>';
-        console.error(e);
+        status.textContent = "Failed to load posts (proxy issue)";
+        container.innerHTML = '<div class="post"><div class="main-line"><strong>No posts loaded – Reddit/proxy blocked. Try local or later.</strong></div></div>';
     }
 }
 //Copy Function
@@ -260,6 +254,7 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
 
 
 
