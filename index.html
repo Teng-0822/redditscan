@@ -79,14 +79,16 @@ const allNeededNumbers = []; // will store only the numbers
 async function loadPosts() {
     const username = document.getElementById('username').value.trim();
     if (!username) return alert("Enter a username");
-   
+
     const status = document.getElementById('status');
     const stats = document.getElementById('stats');
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
+    const copyLinksBtn = document.getElementById('copyLinksBtn');
     container.innerHTML = '';
-    allNeededNumbers.length = 0; // reset
+    allNeededNumbers.length = 0;
     copyAllBtn.style.display = 'none';
+    copyLinksBtn.style.display = 'none';
     status.textContent = 'Loading user posts…';
     let after = null;
     let goodPosts = [];
@@ -95,19 +97,21 @@ async function loadPosts() {
 
     try {
         do {
-        let baseUrl = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
-        if (after) baseUrl += `&after=${after}`;
-        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(baseUrl)}`;
-        const res = await fetch(proxyUrl);
+            let baseUrl = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
+            if (after) baseUrl += `&after=${after}`;
+            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(baseUrl)}`;
+
+            const res = await fetch(proxyUrl);
+            if (!res.ok) throw new Error("User not found or blocked");
+            const json = await res.json();
 
             for (const child of json.data.children) {
                 const p = child.data;
-
                 let removalReason = null;
                 if (p.author === "[deleted]") removalReason = "Deleted by user";
                 else if (p.selftext === "[removed]" || p.selftext === "[deleted]" || p.is_robot_indexable === false) {
-                    removalReason = p.removed_by_category 
-                        ? (p.removed_by_category === "moderator" ? "Removed by Moderator" : "Removed by Reddit") 
+                    removalReason = p.removed_by_category
+                        ? (p.removed_by_category === "moderator" ? "Removed by Moderator" : "Removed by Reddit")
                         : "Removed";
                 } else if (p.banned_by || p.removal_reason || p.quarantined) {
                     removalReason = "Removed by Moderator";
@@ -132,13 +136,13 @@ async function loadPosts() {
                 }
             }
             after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 1100));
+            if (after) await new Promise(r => setTimeout(r, 1100)); // Polite delay
         } while (after);
 
         goodPosts.sort((a, b) => b.dateRaw - a.dateRaw);
         filteredPosts.sort((a, b) => b.dateRaw - a.dateRaw);
 
-        status.textContent = 'Calculating smart upvotes…';
+        status.textContent = 'Calculating smart targets…';
 
         for (const post of goodPosts) {
             const div = document.createElement('div');
@@ -175,20 +179,18 @@ async function loadPosts() {
                 cache.set(post.subreddit, getSmartNeed(post.subreddit, post.score));
             }
             const result = await cache.get(post.subreddit);
+
             document.getElementById(`top-${post.subreddit}`).innerHTML = result.topHTML;
             const needEl = document.getElementById(`need-${post.subreddit}`);
             needEl.innerHTML = result.needHTML;
 
-            // Save the clean number for "Copy All"
-            if (result.neededForCopy) {
+            if (result.neededForCopy !== undefined) {
                 allNeededNumbers.push(result.neededForCopy);
-            } else if (result.needHTML.includes("already #1")) {
-                allNeededNumbers.push(0); // or you can push nothing if you prefer
             }
 
-            if (!result.needHTML.includes("already #1")) {
+            if (result.neededForCopy > 0) {
                 needEl.onclick = () => {
-                    navigator.clipboard.writeText(`${result.neededForCopy} upvotes → Slowest`);
+                    navigator.clipboard.writeText(`${result.neededForCopy}`);
                     const orig = needEl.innerHTML;
                     needEl.innerHTML = 'Copied!';
                     needEl.style.background = '#28a745';
@@ -197,7 +199,7 @@ async function loadPosts() {
             }
         }
 
-        // filtered posts section unchanged
+        // Filtered posts section
         if (filteredPosts.length > 0) {
             const section = document.createElement('div');
             section.className = 'filtered-section';
@@ -233,17 +235,16 @@ async function loadPosts() {
             }
         }
 
-        // Show the Copy All button when done
         if (allNeededNumbers.length > 0) {
             copyAllBtn.style.display = 'inline-block';
-            document.getElementById('copyLinksBtn').style.display = 'inline-block';
+            copyLinksBtn.style.display = 'inline-block';
         }
 
-        status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
+        status.textContent = `Done — ${goodPosts.length} visible • ${filteredPosts.length} filtered`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
 
     } catch (e) {
-        status.textContent = "Error: " + e.message;
+        status.textContent = "Error: " + (e.message || "Failed to load user data");
         console.error(e);
     }
 }
@@ -290,9 +291,9 @@ async function getSmartNeed(subreddit, userScore) {
     try {
         const baseUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`;
         const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(baseUrl)}`;
+
         const res = await fetch(proxyUrl);
-        });
-        if (!res.ok) return { topHTML: "<em>Private</em>", needHTML: "Error" };
+        if (!res.ok) return { topHTML: "<em>Private/restricted</em>", needHTML: "Error" };
 
         const data = await res.json();
         let hotPosts = data.data.children
@@ -302,7 +303,6 @@ async function getSmartNeed(subreddit, userScore) {
         if (hotPosts.length === 0) return { topHTML: "<em>Only pinned</em>", needHTML: "N/A" };
 
         const now = Date.now() / 1000;
-
         let targetPost = null;
         for (const post of hotPosts) {
             const ageSeconds = now - post.created_utc;
@@ -312,13 +312,12 @@ async function getSmartNeed(subreddit, userScore) {
                 break;
             }
         }
-
         if (!targetPost) targetPost = hotPosts[0];
 
         let needed = targetPost.score - userScore + 1;
         if (needed <= 0) {
             return {
-                topHTML: makeTopList(data, hotPosts.slice(0, 5)),
+                topHTML: makeTopList(hotPosts.slice(0, 5)),
                 needHTML: "<strong>You are already #1!</strong>",
                 neededForCopy: 0
             };
@@ -328,13 +327,12 @@ async function getSmartNeed(subreddit, userScore) {
         const needHTML = `<strong>${needed.toLocaleString()} upvotes → Slowest</strong>`;
 
         return {
-            topHTML: makeTopList(data, hotPosts.slice(0, 5)),
+            topHTML: makeTopList(hotPosts.slice(0, 5)),
             needHTML,
             neededForCopy: needed
         };
-
     } catch (e) {
-        return { topHTML: "<em>Failed</em>", needHTML: "Error" };
+        return { topHTML: "<em>Failed to load</em>", needHTML: "Error" };
     }
 }
 
@@ -363,3 +361,4 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
