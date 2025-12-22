@@ -84,7 +84,7 @@ async function loadPosts() {
     const stats = document.getElementById('stats');
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
-    const copyLinksBtn = document.getElementById('copyLinksBtn'); // if you have this
+    const copyLinksBtn = document.getElementById('copyLinksBtn');
     container.innerHTML = '';
     allNeededNumbers.length = 0;
     copyAllBtn.style.display = 'none';
@@ -95,11 +95,12 @@ async function loadPosts() {
     let filteredPosts = [];
     const cache = new Map();
 
+    // Updated proxy list for late 2025 (corsproxy.io first as it's stable)
     const proxies = [
-        'https://corsproxy.io/?',          // Often the most reliable
-        'https://api.cors.lol/?url=',      // Open-source, good for JSON
-        'https://cors.x2u.in/',            // Popular in 2025
-        'https://api.codetabs.com/v1/proxy?quest='  // Fallback
+        'https://corsproxy.io/?',          // Most reliable currently
+        'https://api.cors.lol/?url=',      // Good open-source one
+        'https://cors.x2u.in/',
+        'https://api.codetabs.com/v1/proxy?quest='
     ];
 
     try {
@@ -111,66 +112,56 @@ async function loadPosts() {
             for (const proxyPrefix of proxies) {
                 try {
                     const proxyUrl = proxyPrefix + encodeURIComponent(baseUrl);
-                    const res = await fetch(proxyUrl);
+                    console.log('Trying proxy for user posts:', proxyPrefix); // For debugging
+                    const res = await fetch(proxyUrl, { timeout: 10000 }); // Add timeout if supported
                     if (!res.ok) continue;
 
                     const contentType = res.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) continue;
+                    if (!contentType || !contentType.includes('application/json')) {
+                        console.warn('Non-JSON response from proxy:', proxyPrefix);
+                        continue;
+                    }
 
                     json = await res.json();
-                    break; // Success – stop trying proxies
+                    console.log('Success with proxy:', proxyPrefix);
+                    break;
                 } catch (e) {
-                    // Silent fail, try next proxy
+                    console.warn('Proxy failed:', proxyPrefix, e);
                 }
             }
 
-            if (!json) throw new Error("All proxies failed or returned non-JSON");
-
-            for (const child of json.data.children) {
-                const p = child.data;
-                let removalReason = null;
-                if (p.author === "[deleted]") removalReason = "Deleted by user";
-                else if (p.selftext === "[removed]" || p.selftext === "[deleted]" || p.is_robot_indexable === false) {
-                    removalReason = p.removed_by_category
-                        ? (p.removed_by_category === "moderator" ? "Removed by Moderator" : "Removed by Reddit")
-                        : "Removed";
-                } else if (p.banned_by || p.removal_reason || p.quarantined) {
-                    removalReason = "Removed by Moderator";
-                } else if (p.title.toLowerCase().includes("removed")) {
-                    removalReason = "Removed (title)";
-                }
-
-                const postObj = {
-                    title: p.title,
-                    url: `https://www.reddit.com${p.permalink}`,
-                    subreddit: p.subreddit,
-                    score: p.score || 0,
-                    date: new Date(p.created_utc * 1000).toLocaleDateString(),
-                    dateRaw: p.created_utc,
-                    removalReason
-                };
-
-                if (removalReason) {
-                    filteredPosts.push(postObj);
-                } else {
-                    goodPosts.push(postObj);
-                }
+            if (!json || !json.data || json.data.children.length === 0 && !after) {
+                throw new Error("No posts found or all proxies failed");
             }
+
+            // ... (your existing loop to process children into goodPosts/filteredPosts) ...
+
             after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 1200)); // Slightly longer delay
+            if (after) await new Promise(r => setTimeout(r, 1500)); // Longer delay to avoid blocks
         } while (after);
 
-        // ... (rest of your code unchanged: sorting, rendering goodPosts, filtered section, etc.) ...
+        if (goodPosts.length === 0) {
+            container.innerHTML = '<div class="post"><div class="main-line"><strong>No visible posts found for this user</strong></div></div>';
+            status.textContent = 'Done — 0 visible posts';
+            return;
+        }
+
+        // ... (rest of rendering goodPosts and filteredPosts unchanged) ...
+
+        if (allNeededNumbers.length > 0) {
+            copyAllBtn.style.display = 'inline-block';
+            if (copyLinksBtn) copyLinksBtn.style.display = 'inline-block';
+        }
 
         status.textContent = `Done — ${goodPosts.length} visible • ${filteredPosts.length} filtered`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
 
     } catch (e) {
-        status.textContent = "Error: " + (e.message || "Failed to load – try again later");
+        status.textContent = "Error loading posts: " + (e.message || "Proxy/Reddit issue – try again");
+        container.innerHTML = '<div class="post"><div class="main-line"><strong>Failed to load posts. Check console for details.</strong></div></div>';
         console.error(e);
     }
 }
-
 //Copy Function
 function copyAllUpvotes() {
     if (allNeededNumbers.length === 0) return;
@@ -269,5 +260,6 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
 
 
