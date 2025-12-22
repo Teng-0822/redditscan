@@ -68,13 +68,13 @@
         <span id="stats"></span>
     </div>
     <div class="posts" id="posts"></div>
-    <div class="footer">Click any post to show/hide top 5 • Always 100% safe & 100% natural • Proxy-powered for GitHub Pages</div>
+    <div class="footer">Click any post to show/hide top 5 • Always 100% safe & 100% natural • Powered by corsproxy.io (Dec 2025 working proxy)</div>
 </div>
 <script>
-const allNeededNumbers = []; // will store only the numbers
+const allNeededNumbers = [];
 
-// Updated proxy: Reliable for JSON in 2025 (free, no key, raw output)
-const PROXY = 'https://api.allorigins.win/raw?url=';
+// Reliable free CORS proxy as of December 2025 (supports text/JSON like Reddit endpoints)
+const PROXY = 'https://corsproxy.io/?';
 
 async function fetchWithProxy(url) {
     const proxyUrl = PROXY + encodeURIComponent(url);
@@ -82,13 +82,13 @@ async function fetchWithProxy(url) {
         headers: { 'User-Agent': 'RedditClean/1.0' } 
     });
     if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        throw new Error(`HTTP ${res.status}: Proxy or Reddit error`);
     }
     const contentType = res.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
+    if (contentType && !contentType.includes('application/json')) {
         const text = await res.text();
-        console.error('Non-JSON response:', text.substring(0, 200)); // Log snippet for debug
-        throw new Error('Proxy returned non-JSON (likely HTML error page)');
+        console.error('Non-JSON response from proxy:', text.substring(0, 300));
+        throw new Error('Proxy returned non-JSON (blocked or error page)');
     }
     return await res.json();
 }
@@ -102,7 +102,7 @@ async function loadPosts() {
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
     container.innerHTML = '';
-    allNeededNumbers.length = 0; // reset
+    allNeededNumbers.length = 0;
     copyAllBtn.style.display = 'none';
     document.getElementById('copyLinksBtn').style.display = 'none';
     status.textContent = 'Loading user posts…';
@@ -144,7 +144,7 @@ async function loadPosts() {
                 }
             }
             after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 1100)); // Rate limit delay
+            if (after) await new Promise(r => setTimeout(r, 1100));
         } while (after);
         goodPosts.sort((a, b) => b.dateRaw - a.dateRaw);
         filteredPosts.sort((a, b) => b.dateRaw - a.dateRaw);
@@ -186,8 +186,6 @@ async function loadPosts() {
             needEl.innerHTML = result.needHTML;
             if (result.neededForCopy !== undefined) {
                 allNeededNumbers.push(result.neededForCopy);
-            } else if (result.needHTML.includes("already #1")) {
-                allNeededNumbers.push(0);
             }
             if (!result.needHTML.includes("already #1")) {
                 needEl.onclick = () => {
@@ -237,12 +235,8 @@ async function loadPosts() {
         status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
     } catch (e) {
-        status.textContent = `Error: ${e.message} (Check console for details)`;
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'post';
-        errorDiv.innerHTML = `<div class="main-line"><div class="error-msg">${e.message}</div></div>`;
-        container.appendChild(errorDiv);
-        console.error('Full error:', e);
+        status.textContent = `Error: ${e.message} (open console for details)`;
+        console.error(e);
     }
 }
 
@@ -315,7 +309,7 @@ async function getSmartNeed(subreddit, userScore) {
         };
     } catch (e) {
         console.error('getSmartNeed error:', e);
-        return { topHTML: "<em>Failed to load top posts</em>", needHTML: `<span class="error-msg">Error: ${e.message}</span>`, neededForCopy: null };
+        return { topHTML: "<em>Failed to load top posts</em>", needHTML: "Error" };
     }
 }
 
