@@ -3,270 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit Clean Viewer — Smart & Minimal</title>
+    <title>Reddit Shortlink Target Calculator</title>
     <style>
-        :root { --reddit: #ff4500; --green: #2e7d32; --blue: #007bff; }
-        body { font-family: system-ui, sans-serif; margin:0; background: linear-gradient(135deg, #667eea, #764ba2); min-height:100vh; }
-        .container { max-width: 1000px; margin:40px auto; background:white; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.2); overflow:hidden; }
-        header { background:var(--reddit); color:white; padding:30px; text-align:center; }
-        h1 { margin:0; font-size:2.4em; }
-        .search { padding:30px; display:flex; gap:15px; flex-wrap:wrap; align-items:center; background:#f8f9fa; }
-        input { flex:1; padding:16px; font-size:18px; border:2px solid #ddd; border-radius:12px; min-width:260px; }
-        button.load { padding:16px 36px; background:var(--reddit); color:white; border:none; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; }
-        button.load:hover { background:#e03d00; }
-        button.copyall { padding:16px 28px; background:#28a745; color:white; border:none; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; display:none; }
-        button.copyall:hover { background:#218838; }
-        .info { padding:0 30px 20px; display:flex; justify-content:space-between; color:#444; font-weight:600; }
-        .posts { padding:20px 30px; }
-        .post {
-            background:white; border:1px solid #eee; border-left:6px solid var(--reddit);
-            border-radius:12px; margin-bottom:18px; box-shadow:0 4px 15px rgba(0,0,0,0.06);
-            overflow:hidden;
-        }
-        .main-line {
-            padding:18px 20px; display:flex; justify-content:space-between; align-items:center;
-            background:#fafafa; cursor:pointer; transition:0.2s;
-        }
-        .main-line:hover { background:#f0f0f0; }
-        .title-link { font-size:1.3em; font-weight:600; color:#0969da; text-decoration:none; }
-        .title-link:hover { text-decoration:underline; }
-        .meta { color:#555; font-size:0.95em; margin-top:4px; }
-        .need { padding:8px 14px; background:var(--green); color:white; border-radius:50px; font-weight:bold; font-size:0.95em; cursor:pointer; }
-        .removed { padding:8px 14px; background:#dc3545; color:white; border-radius:50px; font-weight:bold; font-size:0.95em; }
-        .copy-btn { padding:8px 16px; background:var(--blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
-        .copy-btn:hover { background:#0056b3; }
-        .copy-btn.copied { background:#28a745; }
-        .dropdown {
-            max-height:0; overflow:hidden; transition:max-height 0.4s ease;
-            background:#f8f9fa; padding:0 20px;
-        }
-        .dropdown.open { max-height:600px; padding:20px; }
-        .top-list { list-style:none; padding:0; margin:12px 0 0; }
-        .top-list li { margin:8px 0; padding:10px; background:white; border-radius:8px; }
-        .top-list a { color:#333; text-decoration:none; font-weight:500; }
-        .top-list a:hover { color:var(--reddit); text-decoration:underline; }
-        .age { color:#888; font-size:0.9em; }
-        .footer { text-align:center; padding:30px; color:#888; font-size:0.9em; background:#f8f9fa; }
-        .filtered-section { margin-top:40px; padding-top:20px; border-top:3px dashed #ddd; }
-        .filtered-section h3 { margin:0 0 20px; color:#dc3545; }
+        :root { --reddit:#ff4500; --green:#2e7d32; --blue:#007bff; }
+        body {font-family:system-ui,sans-serif;margin:0;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;}
+        .container {max-width:1000px;margin:40px auto;background:white;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.2);overflow:hidden;}
+        header {background:var(--reddit);color:white;padding:30px;text-align:center;}
+        h1 {margin:0;font-size:2.4em;}
+        .search {padding:30px;display:flex;gap:15px;flex-wrap:wrap;background:#f8f9fa;}
+        textarea {flex:1;padding:16px;font-size:18px;border:2px solid #ddd;border-radius:12px;min-height:180px;font-family:monospace;resize:vertical;}
+        button.load {padding:16px 36px;background:var(--reddit);color:white;border:none;border-radius:12px;font-size:18px;font-weight:bold;cursor:pointer;}
+        button.load:hover {background:#e03d00;}
+        button.copyall {padding:16px 28px;background:#28a745;color:white;border:none;border-radius:12px;font-size:18px;font-weight:bold;cursor:pointer;display:none;}
+        button.copyall:hover {background:#218838;}
+        .info {padding:0 30px 20px;display:flex;justify-content:space-between;color:#444;font-weight:600;}
+        .posts {padding:20px 30px;}
+        .post {background:white;border:1px solid #eee;border-left:6px solid var(--reddit);border-radius:12px;margin-bottom:18px;box-shadow:0 4px 15px rgba(0,0,0,0.06);overflow:hidden;}
+        .main-line {padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;background:#fafafa;cursor:pointer;transition:0.2s;flex-wrap:wrap;}
+        .main-line:hover {background:#f0f0f0;}
+        .title-link {font-size:1.3em;font-weight:600;color:#0969da;text-decoration:none;}
+        .title-link:hover {text-decoration:underline;}
+        .meta {color:#555;font-size:0.95em;margin-top:4px;}
+        .full-url {color:#0969da;font-size:0.88em;margin-top:6px;word-break:break-all;}
+        .need {padding:8px 14px;background:var(--green);color:white;border-radius:50px;font-weight:bold;font-size:0.95em;cursor:pointer;}
+        .need.error {background:#d32f2f;cursor:default;}
+        .copy-btn {padding:8px 16px;background:var(--blue);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;}
+        .copy-btn:hover {background:#0056b3;}
+        .copy-btn.copied {background:#28a745;}
+        .dropdown {max-height:0;overflow:hidden;transition:max-height 0.4s ease;background:#f8f9fa;padding:0 20px;}
+        .dropdown.open {max-height:900px;padding:20px;}
+        .top-list {list-style:none;padding:0;margin:12px 0 0;}
+        .top-list li {margin:8px 0;padding:10px;background:white;border-radius:8px;}
+        .top-list a {color:#333;text-decoration:none;font-weight:500;}
+        .top-list a:hover {color:var(--reddit);text-decoration:underline;}
+        .footer {text-align:center;padding:30px;color:#888;font-size:0.9em;background:#f8f9fa;}
+        .short-note {color:#e67e22; font-size:0.9em; margin-top:4px;}
     </style>
 </head>
 <body>
 <div class="container">
-    <header>
-        <h1>Reddit Clean Viewer</h1>
-        <!--<button class="load" style="background:orange;" onclick="window.location.href='Reddit_Link_Update.html'">Link Checker</button>-->
-    </header>
-
+    <header><h1>Reddit Shortlink Target Calculator</h1></header>
     <div class="search">
-        <input type="text" id="username" placeholder="Enter Reddit username (no u/)" autofocus>
-        <button class="load" onclick="loadPosts()">Load Posts</button>
-        <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
-        <button class="copyall" id="copyLinksBtn" onclick="copyAllLinks()">Copy All Links</button>
-
+        <textarea id="links" placeholder="Paste Reddit short links (one per line)
+Examples:
+https://www.reddit.com/r/dressedhot/s/KWxuPi89Du
+https://reddit.com/r/sub/s/abc123
+Works with full links too!" autofocus></textarea>
+        <button class="load" onclick="loadPosts()">Calculate Targets</button>
+        <button class="copyall" id="copyAllBtn" onclick="copyAllTargets()">Copy All Targets</button>
     </div>
     <div class="info">
-        <span id="status">Enter username → see smart natural speed</span>
+        <span id="status">Extracts subreddit → shows top 5 hot + realistic upvote target</span>
         <span id="stats"></span>
     </div>
     <div class="posts" id="posts"></div>
-    <div class="footer">Click any post to show/hide top 5 • Always 100% safe & 100% natural</div>
+    <div class="footer">100% client-side • Copies your original short link • Works on GitHub Pages (updated Dec 2025)</div>
 </div>
-
 <script>
-const allNeededNumbers = []; // will store only the numbers
-async function loadPosts() {
-    const username = document.getElementById('username').value.trim();
-    if (!username) return alert("Enter a Reddit username");
+const allNeededNumbers = [];
 
+function extractSubreddit(url) {
+    const match = url.match(/reddit\.com\/r\/([^\/]+)\/(comments|s)\//i);
+    if (match) return match[1];
+    return null;
+}
+
+async function loadPosts() {
+    const input = document.getElementById('links').value.trim();
+    if (!input) return alert("Paste at least one link");
+    const urls = input.split('\n').map(l => l.trim()).filter(Boolean);
     const status = document.getElementById('status');
-    const stats = document.getElementById('stats');
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
     container.innerHTML = '';
     allNeededNumbers.length = 0;
     copyAllBtn.style.display = 'none';
-    status.textContent = 'Loading user posts…';
+    status.textContent = `Processing ${urls.length} link(s)…`;
+    const cache = new Map();
+    let loaded = 0;
 
-    let after = null;
-    let goodPosts = [];
-    let filteredPosts = [];
-    const cache = new Map(); // Cache subreddit calculations
+    for (let i = 0; i < urls.length; i++) {
+        const originalUrl = urls[i];
+        status.textContent = `Processing ${i+1}/${urls.length}…`;
+        const subreddit = extractSubreddit(originalUrl);
 
-    try {
-        do {
-            let url = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
-            if (after) url += `&after=${after}`;
-
-            // Use proxy to avoid CORS
-            const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url);
-            const res = await fetch(proxyUrl);
-            if (!res.ok) throw new Error("User not found or private");
-
-            const json = await res.json();
-            if (json.data.children.length === 0 && !after) throw new Error("No posts found");
-
-            for (const child of json.data.children) {
-                const p = child.data;
-                let removalReason = null;
-
-                if (p.author === "[deleted]") removalReason = "Deleted by user";
-                else if (p.selftext === "[removed]" || p.selftext === "[deleted]" || p.is_robot_indexable === false) {
-                    removalReason = p.removed_by_category 
-                        ? (p.removed_by_category === "moderator" ? "Removed by mod" : "Removed by Reddit") 
-                        : "Removed";
-                } else if (p.banned_by || p.removal_reason || p.quarantined) {
-                    removalReason = "Removed by mod";
-                } else if (p.title.toLowerCase().includes("removed")) {
-                    removalReason = "Likely removed";
-                }
-
-                const postObj = {
-                    title: p.title,
-                    url: `https://www.reddit.com${p.permalink}`,
-                    subreddit: p.subreddit,
-                    score: p.score || 0,
-                    date: new Date(p.created_utc * 1000).toLocaleDateString(),
-                    dateRaw: p.created_utc,
-                    removalReason
-                };
-
-                if (removalReason) {
-                    filteredPosts.push(postObj);
-                } else {
-                    goodPosts.push(postObj);
-                }
-            }
-
-            after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 1200)); // Be nice to Reddit
-
-        } while (after);
-
-        // Sort newest first
-        goodPosts.sort((a, b) => b.dateRaw - a.dateRaw);
-        filteredPosts.sort((a, b) => b.dateRaw - a.dateRaw);
-
-        status.textContent = 'Calculating realistic targets…';
-
-        // Process good posts
-        for (const post of goodPosts) {
-            const uniqueKey = post.subreddit; // One entry per subreddit (cached)
-
-            const div = document.createElement('div');
-            div.className = 'post';
-            div.innerHTML = `
-                <div class="main-line" onclick="this.parentElement.querySelector('.dropdown').classList.toggle('open')">
-                    <div>
-                        <a href="${post.url}" target="_blank" class="title-link">${post.title}</a>
-                        <div class="meta">/r/${post.subreddit} — ${post.date} — ${post.score.toLocaleString()} upvotes</div>
-                        <div class="full-url">Full link: <a href="${post.url}" target="_blank">${post.url}</a></div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <div class="need" id="need-${uniqueKey}">Calculating…</div>
-                        <button class="copy-btn">Copy link</button>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <strong>Current top 5 hot in /r/${post.subreddit}:</strong><br>
-                    <div id="top-${uniqueKey}">Loading…</div>
-                </div>
-            `;
-
-            div.querySelector('.copy-btn').onclick = (e) => {
-                e.stopPropagation();
-                navigator.clipboard.writeText(post.url);
-                const b = e.target;
-                b.textContent = 'Copied!';
-                b.classList.add('copied');
-                setTimeout(() => { b.textContent = 'Copy link'; b.classList.remove('copied'); }, 2000);
-            };
-
-            container.appendChild(div);
-
-            // Calculate target (cached per subreddit)
-            if (!cache.has(post.subreddit)) {
-                cache.set(post.subreddit, getSmartNeed(post.subreddit));
-            }
-            const result = await cache.get(post.subreddit);
-
-            document.getElementById(`top-${uniqueKey}`).innerHTML = result.topHTML;
-            const needEl = document.getElementById(`need-${uniqueKey}`);
-            needEl.innerHTML = result.needHTML;
-
-            if (result.neededForCopy !== undefined) {
-                allNeededNumbers.push(result.neededForCopy);
-
-                if (result.neededForCopy > 0) {
-                    needEl.onclick = () => {
-                        navigator.clipboard.writeText(`${result.neededForCopy}`);
-                        const orig = needEl.innerHTML;
-                        needEl.innerHTML = 'Copied!';
-                        needEl.style.background = '#28a745';
-                        setTimeout(() => { needEl.innerHTML = orig; needEl.style.background = ''; }, 1500);
-                    };
-                }
-            }
-        }
-
-        // Filtered posts section
-        if (filteredPosts.length > 0) {
-            const header = document.createElement('div');
-            header.style = 'margin: 30px 0 10px; font-size: 1.4em; font-weight: bold; color: #d32f2f;';
-            header.textContent = `Removed / Filtered Posts (${filteredPosts.length})`;
-            container.appendChild(header);
-
-            for (const post of filteredPosts) {
-                const div = document.createElement('div');
-                div.className = 'post';
-                div.innerHTML = `
+        if (!subreddit) {
+            container.innerHTML += `
+                <div class="post">
                     <div class="main-line">
-                        <div>
-                            <a href="${post.url}" target="_blank" class="title-link">${post.title}</a>
-                            <div class="meta">/r/${post.subreddit} — ${post.date} — ${post.score.toLocaleString()} upvotes</div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:15px;">
-                            <div class="need filtered">${post.removalReason}</div>
-                            <button class="copy-btn">Copy link</button>
+                        <div><strong>❌ No subreddit found</strong>
+                        <div class="meta"><a href="${originalUrl}" target="_blank">${originalUrl}</a></div>
                         </div>
                     </div>
-                `;
-                div.querySelector('.copy-btn').onclick = (e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(post.url);
-                    const b = e.target;
-                    b.textContent = 'Copied!';
-                    b.classList.add('copied');
-                    setTimeout(() => { b.textContent = 'Copy link'; b.classList.remove('copied'); }, 2000);
+                </div>`;
+            continue;
+        }
+
+        const uniqueKey = `sub-${subreddit}-${i}`;
+
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.innerHTML = `
+            <div class="main-line" onclick="this.parentElement.querySelector('.dropdown').classList.toggle('open')">
+                <div>
+                    <span class="title-link">/r/${subreddit} short link</span>
+                    <div class="meta">Your original link</div>
+                    <div class="full-url">Short link: <a href="${originalUrl}" target="_blank">${originalUrl}</a></div>
+                    <div class="short-note">Target calculated from current hot posts in /r/${subreddit}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div class="need" id="need-${uniqueKey}">Calculating…</div>
+                    <button class="copy-btn">Copy short link</button>
+                </div>
+            </div>
+            <div class="dropdown">
+                <strong>Top 5 hot posts in /r/${subreddit}:</strong><br>
+                <div id="top-${uniqueKey}">Loading…</div>
+            </div>
+        `;
+
+        div.querySelector('.copy-btn').onclick = e => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(originalUrl);
+            const b = e.target;
+            b.textContent = 'Copied!';
+            b.classList.add('copied');
+            setTimeout(() => { b.textContent = 'Copy short link'; b.classList.remove('copied'); }, 2000);
+        };
+
+        container.appendChild(div);
+        loaded++;
+
+        if (!cache.has(subreddit)) {
+            cache.set(subreddit, getSmartNeed(subreddit));
+        }
+        const result = await cache.get(subreddit);
+
+        document.getElementById(`top-${uniqueKey}`).innerHTML = result.topHTML;
+        const needEl = document.getElementById(`need-${uniqueKey}`);
+        needEl.innerHTML = result.needHTML;
+        if (result.error) needEl.classList.add('error');
+
+        if (result.neededForCopy !== undefined) {
+            allNeededNumbers.push(result.neededForCopy);
+            if (result.neededForCopy > 0) {
+                needEl.onclick = () => {
+                    navigator.clipboard.writeText(`${result.neededForCopy}`);
+                    const orig = needEl.innerHTML;
+                    needEl.innerHTML = 'Copied!';
+                    needEl.style.background = '#28a745';
+                    setTimeout(() => { needEl.innerHTML = orig; needEl.style.background = ''; }, 1500);
                 };
-                container.appendChild(div);
             }
         }
 
-        if (allNeededNumbers.length > 0) {
-            copyAllBtn.style.display = 'inline-block';
-        }
-
-        status.textContent = `Done — ${goodPosts.length} visible posts • ${filteredPosts.length} removed`;
-        stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed/filtered` : 'All posts visible';
-
-    } catch (e) {
-        status.textContent = 'Error: ' + (e.message || 'Failed to load user');
-        console.error(e);
+        await new Promise(r => setTimeout(r, 1200)); // Increased delay
     }
+
+    if (allNeededNumbers.length > 0) {
+        copyAllBtn.style.display = 'inline-block';
+    }
+
+    status.textContent = `Done — ${loaded} link(s) processed`;
 }
 
-function copyAllLinks() {
-    const links = [];
-
-    document.querySelectorAll('.post .title-link').forEach(a => {
-        if (a.href) links.push(a.href);
-    });
-
-    if (links.length === 0) return;
-
-    navigator.clipboard.writeText(links.join('\n')).then(() => {
-        const btn = document.getElementById('copyLinksBtn');
+function copyAllTargets() {
+    if (allNeededNumbers.length === 0) return;
+    const text = allNeededNumbers.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyAllBtn');
         const old = btn.textContent;
         btn.textContent = 'Copied!';
         btn.style.background = '#218838';
@@ -276,13 +181,14 @@ function copyAllLinks() {
         }, 2000);
     });
 }
-//End of Copy function
 
 async function getSmartNeed(subreddit) {
+    // Updated Dec 2025 - most reliable proxies first
     const proxies = [
         'https://api.codetabs.com/v1/proxy?quest=',
         'https://corsproxy.io/?',
-        'https://cors.x2u.in/'
+        'https://cors.x2u.in/',
+        'https://cors.lol/'  // sometimes needs no https:// in URL, but we'll try
     ];
 
     const baseUrls = [
@@ -293,50 +199,97 @@ async function getSmartNeed(subreddit) {
     for (const proxy of proxies) {
         for (const base of baseUrls) {
             try {
-                const url = proxy + encodeURIComponent(base);
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    return processHotData(data);
+                let url = proxy + encodeURIComponent(base);
+                // Special handling for cors.lol if needed
+                if (proxy === 'https://cors.lol/') {
+                    url = proxy + base.replace(/^https?:\/\//, '');
                 }
-            } catch (e) {}
+
+                const res = await fetch(url);
+                if (!res.ok) continue;
+
+                const text = await res.text();
+
+                // Check if we got HTML instead of JSON (Reddit block/login page)
+                if (text.trimStart().startsWith('<') || text.includes('<!DOCTYPE') || text.includes('<html')) {
+                    continue; // Try next proxy
+                }
+
+                const data = JSON.parse(text);
+                return processHotData(data);
+            } catch (e) {
+                // Silent fail, try next
+            }
         }
     }
 
     return {
-        topHTML: "<em>Failed to load hot posts</em>",
-        needHTML: "Error",
+        topHTML: "<em>Blocked by Reddit or proxy issue (common on NSFW/private subs — try later)</em>",
+        needHTML: "Unavailable",
         error: true
     };
 }
-    
-function makeTopList(data, posts) {
-    let list = '<ol class="top-list">';
+
+function processHotData(data) {
+    let hotPosts = data.data.children
+        .filter(c => !c.data.stickied && c.kind === 't3')
+        .map(c => c.data);
+
+    if (hotPosts.length === 0) {
+        return { topHTML: "<em>No visible posts</em>", needHTML: "N/A" };
+    }
+
+    const now = Date.now() / 1000;
+    const TWENTY_HOURS = 20 * 60 * 60;
+    let targetPost = null;
+
+    for (const post of hotPosts) {
+        const age = now - post.created_utc;
+        const isExploding = post.score > 200 && age < TWENTY_HOURS;
+        if (!isExploding) {
+            targetPost = post;
+            break;
+        }
+    }
+    if (!targetPost) targetPost = hotPosts[0];
+
+    let needed = targetPost.score + 1;
+
+    const top5 = hotPosts.slice(0, 5);
+
+    if (needed <= 10) {
+        return {
+            topHTML: makeTopList(top5),
+            needHTML: "<strong>10+ upvotes → recommended</strong>",
+            neededForCopy: 10
+        };
+    }
+
+    needed = Math.max(10, Math.ceil(needed / 5) * 5);
+
+    return {
+        topHTML: makeTopList(top5),
+        needHTML: `<strong>${needed.toLocaleString()} upvotes → Realistic target</strong>`,
+        neededForCopy: needed
+    };
+}
+
+function makeTopList(posts) {
+    let html = '<ol class="top-list">';
     posts.forEach(p => {
-        const age = timeAgo(p.created_utc);
-        const hotTag = (p.score > 200 && (Date.now()/1000 - p.created_utc) < 20*3600) ? " (exploding)" : "";
-        list += `<li><a href="https://www.reddit.com${p.permalink}" target="_blank">${p.title}</a>
-                 <span class="age"> — ${p.score.toLocaleString()} upvotes • ${age}${hotTag}</span></li>`;
+        html += `<li><a href="https://www.reddit.com${p.permalink}" target="_blank">${p.title}</a>
+                 <span style="color:#888;font-size:0.9em;"> — ${p.score.toLocaleString()} upvotes • ${timeAgo(p.created_utc)}</span></li>`;
     });
-    list += '</ol>';
-    return list;
+    html += '</ol>';
+    return html;
 }
 
 function timeAgo(ts) {
     const diff = (Date.now()/1000) - ts;
-    if (diff < 3600) return `${Math.floor(diff/60)} min`;
-    if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-    return `${Math.floor(diff/86400)}d`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return `${Math.floor(diff/86400)}d ago`;
 }
-
-document.getElementById('username').addEventListener('keypress', e => {
-    if (e.key === 'Enter') loadPosts();
-});
 </script>
 </body>
 </html>
-
-
-
-
-
