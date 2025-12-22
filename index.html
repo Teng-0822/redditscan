@@ -49,6 +49,7 @@
         .footer { text-align:center; padding:30px; color:#888; font-size:0.9em; background:#f8f9fa; }
         .filtered-section { margin-top:40px; padding-top:20px; border-top:3px dashed #ddd; }
         .filtered-section h3 { margin:0 0 20px; color:#dc3545; }
+        .error-msg { color: #dc3545; font-style: italic; }
     </style>
 </head>
 <body>
@@ -67,24 +68,29 @@
         <span id="stats"></span>
     </div>
     <div class="posts" id="posts"></div>
-    <div class="footer">Click any post to show/hide top 5 • Works on GitHub Pages • If loading fails, try refreshing (proxy may be rate-limited)</div>
+    <div class="footer">Click any post to show/hide top 5 • Always 100% safe & 100% natural • Proxy-powered for GitHub Pages</div>
 </div>
 <script>
-const allNeededNumbers = [];
+const allNeededNumbers = []; // will store only the numbers
 
-// Most reliable free proxy for Reddit as of December 2025
+// Updated proxy: Reliable for JSON in 2025 (free, no key, raw output)
 const PROXY = 'https://api.allorigins.win/raw?url=';
 
-// Variety of User-Agents to avoid detection/blocking
-const userAgents = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0',
-    'RedditCleanViewer/1.0'
-];
-
-function getRandomUA() {
-    return userAgents[Math.floor(Math.random() * userAgents.length)];
+async function fetchWithProxy(url) {
+    const proxyUrl = PROXY + encodeURIComponent(url);
+    const res = await fetch(proxyUrl, { 
+        headers: { 'User-Agent': 'RedditClean/1.0' } 
+    });
+    if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Non-JSON response:', text.substring(0, 200)); // Log snippet for debug
+        throw new Error('Proxy returned non-JSON (likely HTML error page)');
+    }
+    return await res.json();
 }
 
 async function loadPosts() {
@@ -96,7 +102,7 @@ async function loadPosts() {
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
     container.innerHTML = '';
-    allNeededNumbers.length = 0;
+    allNeededNumbers.length = 0; // reset
     copyAllBtn.style.display = 'none';
     document.getElementById('copyLinksBtn').style.display = 'none';
     status.textContent = 'Loading user posts…';
@@ -108,14 +114,7 @@ async function loadPosts() {
         do {
             let url = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
             if (after) url += `&after=${after}`;
-            const res = await fetch(PROXY + encodeURIComponent(url), {
-                headers: { 'User-Agent': getRandomUA() }
-            });
-            if (!res.ok) throw new Error("Fetch failed – try again or check username");
-            const text = await res.text();
-            if (text.trim().startsWith('<')) throw new Error("Received HTML (blocked or rate-limited) – refresh and try again");
-            const json = JSON.parse(text);
-            if (!json.data || !json.data.children) throw new Error("Invalid response");
+            const json = await fetchWithProxy(url);
             for (const child of json.data.children) {
                 const p = child.data;
                 let removalReason = null;
@@ -145,7 +144,7 @@ async function loadPosts() {
                 }
             }
             after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 3000)); // Longer delay to avoid rate limits
+            if (after) await new Promise(r => setTimeout(r, 1100)); // Rate limit delay
         } while (after);
         goodPosts.sort((a, b) => b.dateRaw - a.dateRaw);
         filteredPosts.sort((a, b) => b.dateRaw - a.dateRaw);
@@ -187,6 +186,8 @@ async function loadPosts() {
             needEl.innerHTML = result.needHTML;
             if (result.neededForCopy !== undefined) {
                 allNeededNumbers.push(result.neededForCopy);
+            } else if (result.needHTML.includes("already #1")) {
+                allNeededNumbers.push(0);
             }
             if (!result.needHTML.includes("already #1")) {
                 needEl.onclick = () => {
@@ -236,8 +237,12 @@ async function loadPosts() {
         status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
     } catch (e) {
-        status.textContent = "Error: " + e.message + " – refresh page and try again";
-        console.error(e);
+        status.textContent = `Error: ${e.message} (Check console for details)`;
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'post';
+        errorDiv.innerHTML = `<div class="main-line"><div class="error-msg">${e.message}</div></div>`;
+        container.appendChild(errorDiv);
+        console.error('Full error:', e);
     }
 }
 
@@ -277,13 +282,7 @@ function copyAllLinks() {
 async function getSmartNeed(subreddit, userScore) {
     try {
         const redditUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`;
-        const res = await fetch(PROXY + encodeURIComponent(redditUrl), {
-            headers: { 'User-Agent': getRandomUA() }
-        });
-        if (!res.ok) return { topHTML: "<em>Private or error</em>", needHTML: "Error" };
-        const text = await res.text();
-        if (text.trim().startsWith('<')) return { topHTML: "<em>Blocked</em>", needHTML: "Error" };
-        const data = JSON.parse(text);
+        const data = await fetchWithProxy(redditUrl);
         let hotPosts = data.data.children
             .filter(child => !child.data.stickied)
             .map(child => child.data);
@@ -315,7 +314,8 @@ async function getSmartNeed(subreddit, userScore) {
             neededForCopy: needed
         };
     } catch (e) {
-        return { topHTML: "<em>Failed</em>", needHTML: "Error" };
+        console.error('getSmartNeed error:', e);
+        return { topHTML: "<em>Failed to load top posts</em>", needHTML: `<span class="error-msg">Error: ${e.message}</span>`, neededForCopy: null };
     }
 }
 
