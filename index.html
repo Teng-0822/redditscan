@@ -67,13 +67,25 @@
         <span id="stats"></span>
     </div>
     <div class="posts" id="posts"></div>
-    <div class="footer">Click any post to show/hide top 5 • Always 100% safe & 100% natural • Works on GitHub Pages via public proxy</div>
+    <div class="footer">Click any post to show/hide top 5 • Works on GitHub Pages • If loading fails, try refreshing (proxy may be rate-limited)</div>
 </div>
 <script>
-const allNeededNumbers = []; // will store only the numbers
+const allNeededNumbers = [];
 
-// Proxy base URL (free, reliable as of 2025)
-const PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
+// Most reliable free proxy for Reddit as of December 2025
+const PROXY = 'https://api.allorigins.win/raw?url=';
+
+// Variety of User-Agents to avoid detection/blocking
+const userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0',
+    'RedditCleanViewer/1.0'
+];
+
+function getRandomUA() {
+    return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
 
 async function loadPosts() {
     const username = document.getElementById('username').value.trim();
@@ -84,7 +96,7 @@ async function loadPosts() {
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
     container.innerHTML = '';
-    allNeededNumbers.length = 0; // reset
+    allNeededNumbers.length = 0;
     copyAllBtn.style.display = 'none';
     document.getElementById('copyLinksBtn').style.display = 'none';
     status.textContent = 'Loading user posts…';
@@ -96,9 +108,14 @@ async function loadPosts() {
         do {
             let url = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
             if (after) url += `&after=${after}`;
-            const res = await fetch(PROXY + encodeURIComponent(url), { headers: { 'User-Agent': 'RedditClean/1.0' } });
-            if (!res.ok) throw new Error("User not found or proxy error");
-            const json = await res.json();
+            const res = await fetch(PROXY + encodeURIComponent(url), {
+                headers: { 'User-Agent': getRandomUA() }
+            });
+            if (!res.ok) throw new Error("Fetch failed – try again or check username");
+            const text = await res.text();
+            if (text.trim().startsWith('<')) throw new Error("Received HTML (blocked or rate-limited) – refresh and try again");
+            const json = JSON.parse(text);
+            if (!json.data || !json.data.children) throw new Error("Invalid response");
             for (const child of json.data.children) {
                 const p = child.data;
                 let removalReason = null;
@@ -128,7 +145,7 @@ async function loadPosts() {
                 }
             }
             after = json.data.after;
-            if (after) await new Promise(r => setTimeout(r, 1100));
+            if (after) await new Promise(r => setTimeout(r, 3000)); // Longer delay to avoid rate limits
         } while (after);
         goodPosts.sort((a, b) => b.dateRaw - a.dateRaw);
         filteredPosts.sort((a, b) => b.dateRaw - a.dateRaw);
@@ -168,10 +185,8 @@ async function loadPosts() {
             document.getElementById(`top-${post.subreddit}`).innerHTML = result.topHTML;
             const needEl = document.getElementById(`need-${post.subreddit}`);
             needEl.innerHTML = result.needHTML;
-            if (result.neededForCopy) {
+            if (result.neededForCopy !== undefined) {
                 allNeededNumbers.push(result.neededForCopy);
-            } else if (result.needHTML.includes("already #1")) {
-                allNeededNumbers.push(0);
             }
             if (!result.needHTML.includes("already #1")) {
                 needEl.onclick = () => {
@@ -221,7 +236,7 @@ async function loadPosts() {
         status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
     } catch (e) {
-        status.textContent = "Error: " + e.message;
+        status.textContent = "Error: " + e.message + " – refresh page and try again";
         console.error(e);
     }
 }
@@ -263,10 +278,12 @@ async function getSmartNeed(subreddit, userScore) {
     try {
         const redditUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`;
         const res = await fetch(PROXY + encodeURIComponent(redditUrl), {
-            headers: { 'User-Agent': 'RedditClean/1.0' }
+            headers: { 'User-Agent': getRandomUA() }
         });
         if (!res.ok) return { topHTML: "<em>Private or error</em>", needHTML: "Error" };
-        const data = await res.json();
+        const text = await res.text();
+        if (text.trim().startsWith('<')) return { topHTML: "<em>Blocked</em>", needHTML: "Error" };
+        const data = JSON.parse(text);
         let hotPosts = data.data.children
             .filter(child => !child.data.stickied)
             .map(child => child.data);
