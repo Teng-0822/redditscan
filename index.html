@@ -277,7 +277,7 @@ function copyAllLinks() {
 async function getSmartNeed(subreddit, userScore) {
     try {
         const redditUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`;
-        redditUrl += `&t=${Date.now()}`;
+        
         const data = await fetchWithProxy(redditUrl);
         let hotPosts = data.data.children
             .filter(child => !child.data.stickied)
@@ -340,4 +340,5 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
 
