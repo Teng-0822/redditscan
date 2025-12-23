@@ -114,6 +114,7 @@ async function loadPosts() {
         do {
             let url = `https://www.reddit.com/user/${username}/submitted/.json?limit=100`;
             if (after) url += `&after=${after}`;
+            url += `&t=${Date.now()}`;
             const json = await fetchWithProxy(url);
             for (const child of json.data.children) {
                 const p = child.data;
@@ -276,6 +277,7 @@ function copyAllLinks() {
 async function getSmartNeed(subreddit, userScore) {
     try {
         const redditUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25`;
+        redditUrl += `&t=${Date.now()}`;
         const data = await fetchWithProxy(redditUrl);
         let hotPosts = data.data.children
             .filter(child => !child.data.stickied)
@@ -338,3 +340,4 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
