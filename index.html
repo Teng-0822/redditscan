@@ -190,11 +190,16 @@ async function loadPosts() {
             }
             if (!result.needHTML.includes("already #1")) {
                 needEl.onclick = () => {
-                    navigator.clipboard.writeText(`${result.neededForCopy} upvotes → Slowest`);
-                    const orig = needEl.innerHTML;
-                    needEl.innerHTML = 'Copied!';
-                    needEl.style.background = '#28a745';
-                    setTimeout(() => { needEl.innerHTML = orig; needEl.style.background = ''; }, 1500);
+                    if (result.neededForCopy !== undefined && result.neededForCopy > 0) {
+                        navigator.clipboard.writeText(result.neededForCopy.toString());
+                        const orig = needEl.innerHTML;
+                        needEl.innerHTML = result.neededForCopy.toLocaleString();
+                        needEl.style.background = '#28a745';
+                        setTimeout(() => {
+                            needEl.innerHTML = orig;
+                            needEl.style.background = '';
+                        }, 1500);
+                    }
                 };
             }
         }
@@ -340,6 +345,7 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
 
 
 
