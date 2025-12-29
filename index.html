@@ -5,71 +5,450 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reddit Clean Viewer — Smart & Minimal</title>
     <style>
-        :root { --reddit: #ff4500; --green: #2e7d32; --blue: #007bff; }
-        body { font-family: system-ui, sans-serif; margin:0; background: linear-gradient(135deg, #667eea, #764ba2); min-height:100vh; }
-        .container { max-width: 1000px; margin:40px auto; background:white; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.2); overflow:hidden; }
-        header { background:var(--reddit); color:white; padding:30px; text-align:center; }
-        h1 { margin:0; font-size:2.4em; }
-        .search { padding:30px; display:flex; gap:15px; flex-wrap:wrap; align-items:center; background:#f8f9fa; }
-        input { flex:1; padding:16px; font-size:18px; border:2px solid #ddd; border-radius:12px; min-width:260px; }
-        button.load { padding:16px 36px; background:var(--reddit); color:white; border:none; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; }
-        button.load:hover { background:#e03d00; }
-        button.copyall { padding:16px 28px; background:#28a745; color:white; border:none; border-radius:12px; font-size:18px; font-weight:bold; cursor:pointer; display:none; }
-        button.copyall:hover { background:#218838; }
-        .info { padding:0 30px 20px; display:flex; justify-content:space-between; color:#444; font-weight:600; }
-        .posts { padding:20px 30px; }
+        :root { 
+            --reddit: #ff4500; 
+            --green: #10b981; 
+            --blue: #3b82f6;
+            --dark: #0f172a;
+            --darker: #020617;
+        }
+        
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            background: var(--darker);
+            min-height: 100vh;
+            color: #e2e8f0;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 69, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container { 
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header { 
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeInDown 0.6s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 { 
+            margin: 0 0 12px;
+            font-size: 3.5em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff4500, #ff6b35, #f59f00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            text-shadow: 0 0 40px rgba(255, 69, 0, 0.3);
+        }
+        
+        .tagline {
+            color: #94a3b8;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        
+        .search-card { 
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: fadeInUp 0.6s ease 0.2s backwards;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        input { 
+            flex: 1;
+            min-width: 280px;
+            padding: 18px 24px;
+            font-size: 1.1em;
+            background: rgba(30, 41, 59, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--reddit);
+            background: rgba(30, 41, 59, 0.9);
+            box-shadow: 0 0 0 4px rgba(255, 69, 0, 0.1);
+        }
+        
+        input::placeholder {
+            color: #64748b;
+        }
+        
+        button {
+            padding: 18px 36px;
+            font-size: 1.05em;
+            font-weight: 700;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button.load { 
+            background: linear-gradient(135deg, var(--reddit), #e03d00);
+            color: white;
+            box-shadow: 0 8px 20px rgba(255, 69, 0, 0.3);
+        }
+        
+        button.load:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(255, 69, 0, 0.4);
+        }
+        
+        button.copyall { 
+            background: linear-gradient(135deg, var(--green), #059669);
+            color: white;
+            display: none;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        button.copyall:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .info { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 16px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        #status {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+        
+        #stats {
+            background: rgba(239, 68, 68, 0.2);
+            padding: 8px 16px;
+            border-radius: 12px;
+            color: #fca5a5;
+            font-weight: 700;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .posts { 
+            display: grid;
+            gap: 20px;
+        }
+        
         .post {
-            background:white; border:1px solid #eee; border-left:6px solid var(--reddit);
-            border-radius:12px; margin-bottom:18px; box-shadow:0 4px 15px rgba(0,0,0,0.06);
-            overflow:hidden;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--reddit);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
+        
+        .post:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
         .main-line {
-            padding:18px 20px; display:flex; justify-content:space-between; align-items:center;
-            background:#fafafa; cursor:pointer; transition:0.2s;
+            padding: 24px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            gap: 20px;
         }
-        .main-line:hover { background:#f0f0f0; }
-        .title-link { font-size:1.3em; font-weight:600; color:#0969da; text-decoration:none; }
-        .title-link:hover { text-decoration:underline; }
-        .meta { color:#555; font-size:0.95em; margin-top:4px; }
-        .need { padding:8px 14px; background:var(--green); color:white; border-radius:50px; font-weight:bold; font-size:0.95em; cursor:pointer; }
-        .removed { padding:8px 14px; background:#dc3545; color:white; border-radius:50px; font-weight:bold; font-size:0.95em; }
-        .copy-btn { padding:8px 16px; background:var(--blue); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
-        .copy-btn:hover { background:#0056b3; }
-        .copy-btn.copied { background:#28a745; }
+        
+        .main-line:hover { 
+            background: rgba(30, 41, 59, 0.4);
+        }
+        
+        .title-link { 
+            font-size: 1.25em;
+            font-weight: 700;
+            color: #60a5fa;
+            text-decoration: none;
+            transition: color 0.2s;
+            line-height: 1.4;
+        }
+        
+        .title-link:hover { 
+            color: #93c5fd;
+        }
+        
+        .meta { 
+            color: #94a3b8;
+            font-size: 0.95em;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        .actions-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .need { 
+            padding: 10px 20px;
+            background: linear-gradient(135deg, var(--green), #059669);
+            color: white;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            white-space: nowrap;
+        }
+        
+        .need:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        
+        .removed { 
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95em;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+            white-space: nowrap;
+        }
+        
+        .copy-btn { 
+            padding: 10px 20px;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 2px solid rgba(59, 130, 246, 0.4);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .copy-btn:hover { 
+            background: rgba(59, 130, 246, 0.3);
+            border-color: var(--blue);
+        }
+        
+        .copy-btn.copied { 
+            background: rgba(16, 185, 129, 0.3);
+            border-color: var(--green);
+            color: #6ee7b7;
+        }
+        
         .dropdown {
-            max-height:0; overflow:hidden; transition:max-height 0.4s ease;
-            background:#f8f9fa; padding:0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            background: rgba(30, 41, 59, 0.4);
+            padding: 0 28px;
         }
-        .dropdown.open { max-height:600px; padding:20px; }
-        .top-list { list-style:none; padding:0; margin:12px 0 0; }
-        .top-list li { margin:8px 0; padding:10px; background:white; border-radius:8px; }
-        .top-list a { color:#333; text-decoration:none; font-weight:500; }
-        .top-list a:hover { color:var(--reddit); text-decoration:underline; }
-        .age { color:#888; font-size:0.9em; }
-        .footer { text-align:center; padding:30px; color:#888; font-size:0.9em; background:#f8f9fa; }
-        .filtered-section { margin-top:40px; padding-top:20px; border-top:3px dashed #ddd; }
-        .filtered-section h3 { margin:0 0 20px; color:#dc3545; }
-        .error-msg { color: #dc3545; font-style: italic; }
+        
+        .dropdown.open { 
+            max-height: 700px;
+            padding: 28px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dropdown strong {
+            color: #e2e8f0;
+            font-size: 1.05em;
+        }
+        
+        .top-list { 
+            list-style: none;
+            padding: 0;
+            margin: 16px 0 0;
+            counter-reset: item;
+        }
+        
+        .top-list li { 
+            margin: 12px 0;
+            padding: 16px 20px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            border-left: 3px solid var(--reddit);
+            transition: all 0.2s;
+            counter-increment: item;
+            position: relative;
+            padding-left: 50px;
+        }
+        
+        .top-list li::before {
+            content: counter(item);
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--reddit);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+        
+        .top-list li:hover { 
+            background: rgba(30, 41, 59, 0.6);
+            transform: translateX(4px);
+        }
+        
+        .top-list a { 
+            color: #cbd5e1;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        
+        .top-list a:hover { 
+            color: var(--reddit);
+        }
+        
+        .age { 
+            color: #64748b;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .footer { 
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            font-size: 0.95em;
+            margin-top: 60px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .filtered-section { 
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px dashed rgba(239, 68, 68, 0.3);
+        }
+        
+        .filtered-section h3 { 
+            margin: 0 0 25px;
+            color: #fca5a5;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5em; }
+            .search-card { padding: 25px; }
+            .main-line { flex-direction: column; align-items: flex-start; }
+            .actions-group { width: 100%; justify-content: flex-start; }
+            input { min-width: 100%; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
         <h1>Reddit Clean Viewer</h1>
+        <div class="tagline">Smart analysis • Natural speed • Zero detection</div>
     </header>
-    <div class="search">
-        <input type="text" id="username" placeholder="Enter Reddit username (no u/)" autofocus>
-        <button class="load" onclick="loadPosts()">Load Posts</button>
-        <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
-        <button class="copyall" id="copyLinksBtn" onclick="copyAllLinks()">Copy All Links</button>
+    
+    <div class="search-card">
+        <div class="search-container">
+            <input type="text" id="username" placeholder="Enter Reddit username (no u/)" autofocus>
+            <button class="load" onclick="loadPosts()">Load Posts</button>
+        </div>
+        <div class="action-buttons">
+            <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
+            <button class="copyall" id="copyLinksBtn" onclick="copyAllLinks()">Copy All Links</button>
+        </div>
     </div>
+    
     <div class="info">
         <span id="status">Enter username → see smart natural speed</span>
         <span id="stats"></span>
     </div>
+    
     <div class="posts" id="posts"></div>
-    <div class="footer">Click any post to show/hide top 5 • Always 100% safe & 100% natural • Powered by corsproxy.io (Dec 2025 working proxy)</div>
+    
+    <div class="footer">
+        Click any post to show/hide top 5 • Always 100% safe & 100% natural<br>
+        Powered by corsproxy.io (Dec 2025 working proxy)
+    </div>
 </div>
+
 <script>
 const allNeededNumbers = [];
 
@@ -159,7 +538,7 @@ async function loadPosts() {
                         <a href="${post.url}" target="_blank" class="title-link">${post.title}</a>
                         <div class="meta">/r/${post.subreddit} — ${post.date} — ${post.score.toLocaleString()} upvotes</div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:15px;">
+                    <div class="actions-group">
                         <div class="need" id="need-${post.subreddit}">Calculating…</div>
                         <button class="copy-btn">Copy link</button>
                     </div>
@@ -217,7 +596,7 @@ async function loadPosts() {
                             <a href="${post.url}" target="_blank" class="title-link">${post.title}</a>
                             <div class="meta">/r/${post.subreddit} — ${post.date} — ${post.score.toLocaleString()} upvotes</div>
                         </div>
-                        <div style="display:flex; align-items:center; gap:15px;">
+                        <div class="actions-group">
                             <div class="removed">${post.removalReason || "Removed"}</div>
                             <button class="copy-btn">Copy link</button>
                         </div>
@@ -345,7 +724,3 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
-
-
-
-
