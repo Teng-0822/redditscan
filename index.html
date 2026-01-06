@@ -540,7 +540,7 @@ async function loadPosts() {
                     </div>
                     <div class="actions-group">
                         <div class="need" id="need-${post.subreddit}">Calculating…</div>
-                        <button class="copy-btn">Copy link</button>
+                        <button class="copy-btn">link</button>
                     </div>
                 </div>
                 <div class="dropdown">
@@ -687,7 +687,7 @@ async function getSmartNeed(subreddit, userScore) {
             };
         }
         needed = Math.max(10, Math.ceil(needed / 5) * 5);
-        const needHTML = `<strong>${needed.toLocaleString()} upvotes → Slowest</strong>`;
+        const needHTML = `<strong>${needed.toLocaleString()} up</strong>`;
         return {
             topHTML: makeTopList(data, hotPosts.slice(0, 5)),
             needHTML,
@@ -724,4 +724,5 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
+
 
