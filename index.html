@@ -541,8 +541,14 @@
             .main-line { flex-direction: column; align-items: flex-start; }
             .actions-group { width: 100%; justify-content: flex-start; }
             input { min-width: 100%; }
-            .checkbox-container { flex-direction: column; align-items: flex-start; }
-            .checkbox-container .checkbox-desc { margin-left: 0; margin-top: 5px; }
+            .checkbox-container { 
+                flex-wrap: wrap; 
+            }
+            .checkbox-container .checkbox-desc { 
+                flex-basis: 100%; 
+                margin-left: 30px; 
+                margin-top: 5px; 
+            }
         }
     </style>
 </head>
@@ -561,7 +567,7 @@
         <div class="checkbox-container">
             <input type="checkbox" id="forceMode" name="forceMode">
             <label for="forceMode">Force Top #1</label>
-            <span class="checkbox-desc">Ignores rules • Beats current #1 + extra buffer</span>
+            <span class="checkbox-desc">Beats #1 + buffer</span>
         </div>
         <div class="action-buttons">
             <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
@@ -667,7 +673,7 @@ async function loadPosts() {
         } while (after);
         goodPosts.sort((a, b) => b.dateRaw - a.dateRaw);
         filteredPosts.sort((a, b) => b.dateRaw - a.dateRaw);
-        status.textContent = 'Calculating smart upvotes…';
+        status.textContent = `Calculating smart upvotes${forceMode ? ' (FORCE MODE)' : ''}…`;
         for (const post of goodPosts) {
             const div = document.createElement('div');
             div.className = 'post';
@@ -675,10 +681,10 @@ async function loadPosts() {
                 <div class="main-line" onclick="this.parentElement.querySelector('.dropdown').classList.toggle('open')">
                     <div>
                         <a href="${post.url}" target="_blank" class="title-link">${post.title}</a>
-                        <div class="meta">/r/${post.subreddit} — ${post.date} — ${post.score.toLocaleString()} upvotes</div>
+                        <div class="meta">/r/${post.subreddit} — ${post.date} — ${post.score.toLocaleString()} upvotes${forceMode ? ' • FORCE MODE ACTIVE' : ''}</div>
                     </div>
                     <div class="actions-group">
-                        <div class="need" id="need-${post.subreddit}">Calculating…</div>
+                        <div class="need ${forceMode ? 'forced' : ''}" id="need-${post.subreddit}">Calculating…</div>
                         <button class="copy-btn">link</button>
                     </div>
                 </div>
@@ -696,10 +702,11 @@ async function loadPosts() {
                 setTimeout(() => { b.textContent = 'Copy link'; b.classList.remove('copied'); }, 2000);
             };
             container.appendChild(div);
-            if (!cache.has(post.subreddit)) {
-                cache.set(post.subreddit, getSmartNeed(post.subreddit, post.score));
+            const cacheKey = `${post.subreddit}-${forceMode}`;
+            if (!cache.has(cacheKey)) {
+                cache.set(cacheKey, getSmartNeed(post.subreddit, post.score, forceMode));
             }
-            const result = await cache.get(post.subreddit);
+            const result = await cache.get(cacheKey);
             document.getElementById(`top-${post.subreddit}`).innerHTML = result.topHTML;
             const needEl = document.getElementById(`need-${post.subreddit}`);
             needEl.innerHTML = result.needHTML;
@@ -772,7 +779,7 @@ async function loadPosts() {
             document.getElementById('copyLinksBtn').style.display = 'inline-block';
             document.getElementById('copyAllDataBtn').style.display = 'inline-block';
         }
-        status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
+        status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out${forceMode ? ' (FORCE MODE)' : ''}`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
     } catch (e) {
         status.textContent = `Error: ${e.message} (open console for details)`;
@@ -831,7 +838,7 @@ function copyAllData() {
     });
 }
 
-async function getSmartNeed(subreddit, userScore) {
+async function getSmartNeed(subreddit, userScore, forceMode = false) {
     try {
         const redditUrl = `https://old.reddit.com/r/${subreddit}/hot/.json?limit=25&t=${Date.now()}`;
         
@@ -840,6 +847,26 @@ async function getSmartNeed(subreddit, userScore) {
             .filter(child => !child.data.stickied)
             .map(child => child.data);
         if (hotPosts.length === 0) return { topHTML: "<em>Only pinned</em>", needHTML: "N/A" };
+        
+        const topHTML = makeTopList(data, hotPosts.slice(0, 5));
+        
+        // FORCE MODE: Beat the #1 post + add buffer for longevity
+        if (forceMode) {
+            const topPost = hotPosts[0];
+            // Beat #1 by a margin + add 20% buffer to stay on top longer
+            let needed = Math.ceil(topPost.score * 1.2) + 50;
+            
+            // Round up to nearest 10 for clean numbers
+            needed = Math.ceil(needed / 10) * 10;
+            
+            return {
+                topHTML,
+                needHTML: `<strong>${needed.toLocaleString()} up</strong> <span style="color:#fbbf24;">(FORCED)</span>`,
+                neededForCopy: needed
+            };
+        }
+        
+        // NORMAL MODE: Original logic
         const now = Date.now() / 1000;
         let targetPost = null;
         for (const post of hotPosts) {
@@ -854,7 +881,7 @@ async function getSmartNeed(subreddit, userScore) {
         let needed = targetPost.score - userScore + 1;
         if (needed <= 0) {
             return {
-                topHTML: makeTopList(data, hotPosts.slice(0, 5)),
+                topHTML,
                 needHTML: "<strong>You are already #1!</strong>",
                 neededForCopy: 0
             };
@@ -862,7 +889,7 @@ async function getSmartNeed(subreddit, userScore) {
         needed = Math.max(10, Math.ceil(needed / 5) * 5);
         const needHTML = `<strong>${needed.toLocaleString()} up</strong>`;
         return {
-            topHTML: makeTopList(data, hotPosts.slice(0, 5)),
+            topHTML,
             needHTML,
             neededForCopy: needed
         };
