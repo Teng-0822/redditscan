@@ -433,6 +433,7 @@
         <div class="action-buttons">
             <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
             <button class="copyall" id="copyLinksBtn" onclick="copyAllLinks()">Copy All Links</button>
+            <button class="copyall" id="copyAllDataBtn" onclick="copyAllData()">Copy ALL</button>
         </div>
     </div>
     
@@ -451,6 +452,7 @@
 
 <script>
 const allNeededNumbers = [];
+const allPostsData = [];
 
 // Reliable free CORS proxy as of December 2025 (supports text/JSON like Reddit endpoints)
 const PROXY = 'https://corsproxy.io/?';
@@ -482,8 +484,10 @@ async function loadPosts() {
     const copyAllBtn = document.getElementById('copyAllBtn');
     container.innerHTML = '';
     allNeededNumbers.length = 0;
+    allPostsData.length = 0;
     copyAllBtn.style.display = 'none';
     document.getElementById('copyLinksBtn').style.display = 'none';
+    document.getElementById('copyAllDataBtn').style.display = 'none';
     status.textContent = 'Loading user posts…';
     let after = null;
     let goodPosts = [];
@@ -567,6 +571,11 @@ async function loadPosts() {
             if (result.neededForCopy !== undefined) {
                 allNeededNumbers.push(result.neededForCopy);
             }
+            allPostsData.push({
+                url: post.url,
+                score: post.score,
+                status: 'Alive'
+            });
             if (!result.needHTML.includes("already #1")) {
                 needEl.onclick = () => {
                     if (result.neededForCopy !== undefined && result.neededForCopy > 0) {
@@ -611,11 +620,22 @@ async function loadPosts() {
                     setTimeout(() => { b.textContent = 'Copy link'; b.classList.remove('copied'); }, 2000);
                 };
                 container.appendChild(div);
+                
+                let status = 'Filtered';
+                if (post.removalReason && post.removalReason.includes('Moderator')) {
+                    status = 'Removed by Mods';
+                }
+                allPostsData.push({
+                    url: post.url,
+                    score: post.score,
+                    status: status
+                });
             }
         }
         if (allNeededNumbers.length > 0) {
             copyAllBtn.style.display = 'inline-block';
             document.getElementById('copyLinksBtn').style.display = 'inline-block';
+            document.getElementById('copyAllDataBtn').style.display = 'inline-block';
         }
         status.textContent = `Done — ${goodPosts.length} Successfully Posted • ${filteredPosts.length} Filtered Out`;
         stats.textContent = filteredPosts.length ? `${filteredPosts.length} removed` : "All clean";
@@ -648,6 +668,24 @@ function copyAllLinks() {
     if (links.length === 0) return;
     navigator.clipboard.writeText(links.join('\n')).then(() => {
         const btn = document.getElementById('copyLinksBtn');
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.background = '#218838';
+        setTimeout(() => {
+            btn.textContent = old;
+            btn.style.background = '';
+        }, 2000);
+    });
+}
+
+function copyAllData() {
+    if (allPostsData.length === 0) return;
+    const rows = allPostsData.map(item => {
+        return `${item.url}\t${item.score}\t${item.status}`;
+    });
+    const text = rows.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyAllDataBtn');
         const old = btn.textContent;
         btn.textContent = 'Copied!';
         btn.style.background = '#218838';
@@ -724,5 +762,3 @@ document.getElementById('username').addEventListener('keypress', e => {
 </script>
 </body>
 </html>
-
-
