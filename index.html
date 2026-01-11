@@ -221,6 +221,39 @@
             flex-wrap: wrap;
         }
         
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 12px;
+            border: 2px solid rgba(255, 69, 0, 0.3);
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--reddit);
+        }
+        
+        .checkbox-container label {
+            color: #fbbf24;
+            font-weight: 700;
+            font-size: 1.05em;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .checkbox-container .checkbox-desc {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-left: auto;
+            font-style: italic;
+        }
+        
         .info { 
             display: flex;
             justify-content: space-between;
@@ -343,6 +376,19 @@
         
         .need:active {
             transform: scale(1.05);
+        }
+        
+        .need.forced {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            box-shadow: 
+                0 6px 18px rgba(251, 191, 36, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+        
+        .need.forced:hover {
+            box-shadow: 
+                0 10px 25px rgba(251, 191, 36, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
         }
         
         .removed { 
@@ -495,6 +541,8 @@
             .main-line { flex-direction: column; align-items: flex-start; }
             .actions-group { width: 100%; justify-content: flex-start; }
             input { min-width: 100%; }
+            .checkbox-container { flex-direction: column; align-items: flex-start; }
+            .checkbox-container .checkbox-desc { margin-left: 0; margin-top: 5px; }
         }
     </style>
 </head>
@@ -509,6 +557,11 @@
         <div class="search-container">
             <input type="text" id="username" placeholder="Enter Reddit username (no u/)" autofocus>
             <button class="load" onclick="loadPosts()">Load Posts</button>
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="forceMode" name="forceMode">
+            <label for="forceMode">Force Top #1</label>
+            <span class="checkbox-desc">Ignores rules • Beats current #1 + extra buffer</span>
         </div>
         <div class="action-buttons">
             <button class="copyall" id="copyAllBtn" onclick="copyAllUpvotes()">Copy All Upvotes</button>
@@ -562,13 +615,15 @@ async function loadPosts() {
     const stats = document.getElementById('stats');
     const container = document.getElementById('posts');
     const copyAllBtn = document.getElementById('copyAllBtn');
+    const forceMode = document.getElementById('forceMode').checked;
+    
     container.innerHTML = '';
     allNeededNumbers.length = 0;
     allPostsData.length = 0;
     copyAllBtn.style.display = 'none';
     document.getElementById('copyLinksBtn').style.display = 'none';
     document.getElementById('copyAllDataBtn').style.display = 'none';
-    status.textContent = 'Loading user posts…';
+    status.textContent = `Loading user posts${forceMode ? ' (FORCE MODE)' : ''}…`;
     let after = null;
     let goodPosts = [];
     let filteredPosts = [];
